@@ -1,0 +1,144 @@
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+  \usepackage[capitalize]{cleveref}
+\usepackage{comment}
+\usepackage{ebproof}
+\usepackage{framed}
+\usepackage{lipsum}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{xspace}
+
+
+
+% styles
+
+\newcommand{\df}[1]{\emph{#1}}
+\newcommand{\wbar}{\overline}
+
+\theoremstyle{plain}
+  \newtheorem{theorem}{Theorem}
+  \newtheorem{proposition}[theorem]{Proposition}  \newtheorem{lemma}[theorem]{Lemma}
+  \newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+  \newtheorem{definition}[theorem]{Definition}
+%  \newtheorem{example}[theorem]{Example}
+%\theoremstyle{remark}
+%  \newtheorem{remark}[theorem]{Remark}
+%  \newtheorem{notation}[theorem]{Notation}
+
+% roman numbers
+\makeatletter
+  \newcommand{\Rnum}[1]{\expandafter\@slowromancap\romannumeral #1@}
+\makeatother
+
+
+
+% basic
+
+\newcommand{\id}{\mathsf{id}}
+\newcommand{\compose}{\circ}
+\newcommand{\seqcompose}{\mathbin{\raise 0.6ex\hbox{\oalign{\hfil$\scriptscriptstyle      \mathrm{o}$\hfil\cr\hfil$\scriptscriptstyle\mathrm{9}$\hfil}}}}
+\newcommand{\K}{\ensuremath{\mathbb{K}}\xspace}
+\newcommand{\card}[1]{\mathsf{card}(#1)}
+\newcommand{\codom}[1]{\mathsf{codom}(#1)}
+\newcommand{\dom}[1]{\mathsf{dom}(#1)}
+\newcommand{\fin}{\mathrm{fin}}
+\newcommand{\pset}[1]{\mathcal{P}(#1)}
+\newcommand{\prule}[1]{(\textsc{#1})}
+\newcommand{\pr}[1]{\langle#1\rangle}
+\newcommand{\Slash}{//\xspace}
+\newcommand{\dnt}[1]{\llbracket #1 \rrbracket}
+  \newcommand{\dntt}[2]{\dnt{#1}_{#2}}
+\newcommand{\kto}{\curvearrowright}
+\newcommand{\pto}{\rightharpoonup}
+\newcommand{\ptof}{\pto_\fin}
+\newcommand{\xtofrom}{\xlongleftrightarrow}
+\newcommand{\hole}{\square}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\ld}{\,.\,}
+\newcommand{\s}{\,}
+\newcommand{\imp}{\rightarrow}
+\newcommand{\dimp}{\leftrightarrow}
+\newcommand{\simp}{\mathbin{-\!*}}
+\newcommand{\cimp}{\mathbin{-\!\circ}}
+\newcommand{\ev}[2]{|#1|_{#2}}
+\newcommand{\FF}{\mathcal{F}}
+\newcommand{\GG}{\mathcal{G}}
+\newcommand{\lfp}[1]{\mathord{\mathbf{lfp}}(#1)}
+\newcommand{\gfp}[1]{\mathord{\mathbf{gfp}}(#1)}
+\newcommand{\restr}[2]{#1|_{#2}}
+\newcommand{\ap}{\mathbin{\text{@}}}
+  \newcommand{\apM}{\ap_M}
+  \newcommand{\apMe}{\mathbin{\wbar{\apM}}}
+  \newcommand{\apA}{\ap_A}
+\newcommand{\FV}[1]{\mathit{FV(#1)}}
+\newcommand{\cmark}{\ding{51}\xspace} % requires pifont
+\newcommand{\xmark}{\ding{55}\xspace} % requires pifont
+\newcommand{\cell}[2]{\left\langle #1 \right\rangle_{\text{#2}}}
+ \newcommand{\cellm}[2]{\cell{...\ #1\ ...}{#2}}
+ \newcommand{\cellf}[2]{\cell{#1\ ...}{#2}}
+ \newcommand{\cells}[2]{\left\langle #1 \right\rangle^{*}_{\text{#2}}}
+\newcommand{\inh}[1]{\top_{#1}}
+\newcommand{\EV}{\mathit{EV}}
+\newcommand{\SV}{\mathit{SV}}
+\newcommand{\NN}{\mathbb{N}}
+  \newcommand{\NNp}{\NN^+}
+\newcommand{\ceil}[1]{\lceil#1\rceil}
+\newcommand{\floor}[1]{\lfloor#1\rfloor}
+\newcommand{\cln}{\,{:}\,}
+\newcommand{\oto}{\to}
+\newcommand{\To}{\Rightarrow}
+\newcommand{\sand}{\mathbin{*}}
+\newcommand{\proves}{\vdash}
+\newcommand{\onext}{\mathord{\bullet}}
+\newcommand{\anext}{\mathord{\circ}}
+\newcommand{\ToExOne}{\To^{\exists}_{1}}
+\newcommand{\ToAlOne}{\To^{\forall}_{1}}
+\newcommand{\ToAl}{\To^{\forall}_{*}}
+\newcommand{\sanext}{\anext_s}
+\newcommand{\itSTOP}{\mathsf{STOP}}
+\newcommand{\itNONSTOP}{\mathsf{NONSTOP}}
+\newcommand{\varphitau}{\varphi^\tau}
+\newcommand{\matchQ}{\triangleleft_?}
+\newcommand{\unifyQ}{=_?}
+\newcommand{\Er}{E_r}
+\newcommand{\Ea}{E_a}
+\newcommand{\Es}{E_s}
+\newcommand{\tor}{\rightsquigarrow_r}
+\newcommand{\toa}{\rightsquigarrow_a}
+\newcommand{\tos}{\rightsquigarrow_s}
+
+% derived
+\newcommand{\varphiinit}{\varphi_\mathit{init}}
+\newcommand{\varphifinal}{\varphi_\mathit{final}}
+\newcommand{\Toexec}{\To_\mathsf{exec}}
+\newcommand{\Toreach}{\To_\mathsf{reach}}
+\newcommand{\varphipre}{\varphi_\mathit{pre}}
+\newcommand{\varphipost}{\varphi_\mathit{post}}
+
+
+% code
+
+\newcommand{\code}[1]{\texttt{#1}\xspace}
+\newcommand{\cc}[1]{{#1}}
+\newcommand{\ccite}[3]{\mathbf{if}\ #1\ \mathbf{then}\ #2\ \mathbf{else}\ #3}
+\newcommand{\ccwhile}[2]{\mathbf{while}\ #1\ \mathbf{do}\ #2}
+\newcommand{\ccreturn}[1]{\mathbf{return}\ #1}
+\newcommand{\ccif}{\mathbf{if}}
+\newcommand{\ndnd}{\ \texttt{\&\&}\ }
+\newcommand{\Cif}{C_{\ccif}}
+\newcommand{\Cpct}{C_{\%}}
+\newcommand{\Ceq}{C_{\textnormal{\texttt{==}}}}
+\newcommand{\cceq}{{\ \textnormal{\texttt{==}}\ }}
+\newcommand{\requires}{\text{requires}}
+\newcommand{\KResult}{\mathsf{KResult}}
+
+% non-logical symbols
+
+\newcommand{\itplug}{\mathsf{plug}}
+\newcommand{\ctxid}{\mathsf{id}}
+
+% theories
+\newcommand{\ThContexts}{\Gamma^{\mathsf{Context}}}

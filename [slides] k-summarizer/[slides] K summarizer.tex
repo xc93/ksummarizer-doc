@@ -1,0 +1,400 @@
+\documentclass{beamer}
+
+\input{prelim}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Table of Contents}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\title{The \K Summarizer}
+\author{Runtime Verification, Inc.\\slides composed by Xiaohong Chen}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
+\end{frame}
+
+\section{Rewriting in Matching Logic}
+
+\begin{frame}
+\frametitle{Matching Logic Patterns}
+\[
+\varphi \coloneqq x \mid X \mid \sigma(\varphi_1,\dots,\varphi_n)
+\mid \bot \mid \varphi_1 \imp \varphi_2 \mid \exists x \ld \varphi
+\mid \mu X \ld \varphi
+\]
+\end{frame}
+
+\begin{frame}
+\frametitle{Matching Logic Theories and Notations}
+\begin{itemize}
+\item $\ceil{\varphi}$, definedness/ceiling
+\item $\floor{\varphi}$, totality/flooring
+\item $\varphi_1 = \varphi_2$, equality
+\item $\varphi_1 \subseteq \varphi_2$, set inclusion
+\item $x \in \varphi$, membership
+\item $\neg_s \varphi$, sorted negation
+\item $\exists x \cln s \ld \varphi$ and
+      $\forall x \cln s \ld \varphi$, sorted quantification
+\item $\mu X \cln s \ld \varphi$ and $\nu X \cln s \ld \varphi$,
+      sorted fixpoints
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Transition Systems}
+Let $\Cfg$ be a distinguished sort of configurations.
+Let us assume a configuration model
+where $\ToCfg$ is a transition relation over configurations.
+\begin{itemize}
+\item $\onext \varphi$, one-path next\\
+\begin{itemize}
+\item $s \in \onext\varphi$ if there exists $s'$ such that
+      $s \ToCfg s'$ and $s' \in \varphi$.
+\item $\itNONSTOP \equiv \onext \top_\Cfg$,
+      the set of non-terminating configurations
+\item $\itSTOP \equiv \neg_\Cfg \itNONSTOP$,
+      the set of terminating configurations
+\end{itemize}
+\item $\anext \varphi \equiv \neg_\Cfg \onext \neg_\Cfg \varphi$, all-path next
+\begin{itemize}
+\item $s \in \anext \varphi$ if for all $s'$ such that
+      $s \To_\Cfg s'$, $s' \in \varphi$.
+\item $\anext \bot$ is equivalent to $\itSTOP$.
+\end{itemize}
+\item Sometimes we want to enforce non-termination for all-path next.
+\item $\sanext \varphi \equiv \anext \varphi \land \itNONSTOP$,
+      strong all-path next.
+\begin{itemize}
+\item $\sanext \varphi$ is equivalent to $\anext \varphi \land \onext \varphi$.
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Rewrite Rules}
+\begin{itemize}
+\item $\varphi_1 \ToExOne \varphi_2 \equiv \varphi_1 \imp \onext \varphi_2$,
+one-path one-step rewriting.
+\begin{itemize}
+\item The superscript $\exists$ means ``one-path''
+\item The subscript $1$ means ``one-step''
+\end{itemize}
+\end{itemize}
+A \emph{rewrite rule} is an axiom of the form
+\[\varphi_1 \ToExOne \varphi_2\]
+where $\varphi_1$ and $\varphi_2$ are patterns of sort $\Cfg$.
+
+Semantically, $\varphi_1 \ToExOne \varphi_2$ holds
+iff for all $s \in \varphi_1$ there exists $s' \in \varphi_2$ 
+such that $s \To_\Cfg s'$.
+\end{frame}
+
+\begin{frame}
+\frametitle{One-Path Rewriting}
+\begin{itemize}
+\item $\varphi_1 \ToE_2 \varphi_2 \equiv 
+       \varphi_1 \imp \onext \onext \varphi_2$,
+one-path two-step rewriting.
+\item $\varphi_1 \ToE_3 \varphi_2 \equiv 
+       \varphi_1 \imp \onext\onext \onext \varphi_2$,
+one-path three-step rewriting.
+\item \dots
+\item $\eventually \varphi_2 \equiv \mu X \cln \Cfg \ld \varphi_2 \lor \onext X$
+\begin{itemize}
+\item $s \in \eventually\varphi_2$ if
+      there exists a finite execution trace
+      $s \To_\Cfg^n s'$ for $n \ge 0$ such that
+      $s' \in \varphi_2$
+\end{itemize}
+\item $\varphi_1 \ToEx \varphi_2 \equiv
+       \varphi_1 \imp \eventually\varphi_2$, one-path finite-step rewriting.
+\begin{itemize}
+\item It holds iff for all $s \in \varphi_1$
+      there exists $s \To_\Cfg^n s'$ for $n \ge 0$ such that
+      $s' \in \varphi_2$.
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{All-Path Rewriting}
+\begin{itemize}
+\item $\varphi_1 \ToEx \varphi_2 \equiv
+       \varphi_1 \imp \eventually\varphi_2$, one-path finite-step rewriting.
+\begin{itemize}
+\item It holds iff for all $s \in \varphi_1$
+      there exists $s \To_\Cfg^n s'$ for $n \ge 0$ such that
+      $s' \in \varphi_2$.
+\end{itemize}
+\item Question: what should ``all-path symbolic execution''
+      $\varphi_1 \ToAl \varphi_2$ mean? 
+\item (All-path reachability):
+      for all $s \in \varphi_1$ and all complete 
+      (i.e., finite and maximum) paths
+      \[s = s_0 \To_\Cfg s_1 \To_\Cfg \dots \To_\Cfg s_n,\quad
+       \text{$s_n$ terminating} \]
+      there exists $0 \le m \le n$ such that $s_m \in \varphi_2$.
+\begin{itemize}
+\item Problem is that behaviors on infinite paths are entirely ignored. 
+\end{itemize}
+\item (More Reasonable?):
+      for all $s \in \varphi_1$ and all complete or infinite
+      paths
+      \[s = s_0 \To_\Cfg s_1 \To_\Cfg \dots\]
+      there exists $m \ge 0$ such that $s_m \in \varphi_2$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{All-Path Rewriting}
+\begin{itemize}
+\item $\varphi_1 \ToAlOne \varphi_2 \equiv 
+       \varphi_1 \imp \anext \varphi_2$,
+all-path one-step rewriting.
+\begin{itemize}
+\item It holds iff for all $s \in \varphi_1$ and $s \To_\Cfg s'$,
+      $s' \in \varphi_2$.
+      Note that $s$ is allowed to be terminating.
+\end{itemize}
+\item $\varphi_1 \ToAs_1 \varphi_2 \equiv 
+       \varphi_1 \imp \sanext \varphi_2$,
+strong all-path one-step rewriting.
+\begin{itemize}
+\item In addition to $\varphi_1 \ToAlOne \varphi_2$, it requires
+      all $s \in \varphi_1$ to be non-terminating.
+\end{itemize}
+\item $\varphi_1 \ToA_2 \varphi_2 \equiv 
+       \varphi_1 \imp \anext\anext \varphi_2$,
+one-path two-step rewriting.
+\item $\varphi_1 \ToAs_2 \varphi_2 \equiv 
+       \varphi_1 \imp \sanext\sanext \varphi_2$,
+strong one-path two-step rewriting.
+\item $\varphi_1 \ToAl \varphi_2 \equiv
+       \varphi_1 \imp \mu X \ld \varphi_2 \lor \sanext X$, all-path
+       rewriting.
+\item $\varphi_1 \Toreach^\forall \varphi_2 \equiv
+       \varphi_1 \imp \nu X \ld \varphi_2 \lor \sanext X$, all-path
+       reachability.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{All-Path Rewriting}
+\begin{lemma}
+The following statements about $s$ are equivalent:
+\begin{enumerate}
+\item For all complete or infinite paths
+      $s = s_0 \To_\Cfg s_1 \To_\Cfg \dots$
+      there exists $m \ge 0$ such that $s_m \in \varphi$;
+\item $s \in \ev{\mu X \ld \varphi_2 \lor \sanext X}{M}$
+\end{enumerate}
+\end{lemma}
+\begin{proof}[Proof (TODO)]
+Let $\xi$ and $\eta$ denote the set of all configurations
+that satisfy (1) and (2), respectively.
+Prove both $\xi \subseteq \eta$ and $\eta \subseteq \xi$.
+Hint: use the Knaster-Tarski theorem to convert
+$\eta$ into a big intersection.
+\end{proof}
+\end{frame}
+
+\begin{frame}
+\begin{lemma}
+All-path rewriting implies all-path reachability:
+$\vdash \varphi_1 \ToAl \varphi_2$ implies
+$\vdash \varphi_1 \Toreach^\forall \varphi_2$.
+\end{lemma}
+\begin{proof}
+Simply observe that all-path rewriting
+\[\varphi_1 \ToAl \varphi_2 \equiv
+       \varphi_1 \imp \mu X \ld \varphi_2 \lor \sanext X\]
+is the least fixpoint while
+all-path reachability 
+\[\varphi_1 \Toreach^\forall \varphi_2 \equiv
+       \varphi_1 \imp \nu X \ld \varphi_2 \lor \sanext X\]
+is the greatest fixpoint. 
+\end{proof}
+\end{frame}
+
+\section{\K Control-Flow Graphs}
+
+\begin{frame}
+\frametitle{\K Control-Flow Graphs}
+\begin{definition}
+A \K control-flow graph (abbreviated KCFG) $G = (V, \Er, \Ea, \Es)$ is a finite directed graph
+with three types of edges where
+\begin{itemize}
+\item the vertex set $V$ is a set of patterns;
+\item $\Er \subseteq V \times V$ is called the \emph{rewriting relation};
+\item $\Ea \subseteq V \times V$ is called the \emph{abstracting relation};
+\item $\Es \subseteq V \times V$ is called the \emph{splitting relation}. 
+\end{itemize}
+We write $\varphi \tor \psi$ 
+($\varphi \toa \psi$ and $\varphi \tos \psi$, resp.)
+for the three types of edges.
+\end{definition}
+\end{frame}
+
+\begin{frame}
+\begin{definition}
+A KCFG $G = (V, \Er, \Ea, \Es)$ is \emph{sound} if
+\begin{enumerate}
+\item (rewriting edges) $\vdash \varphi \ToAl \psi$ for all $\varphi \tor \psi$;
+\item (abstracting edges) 
+   $\vdash \varphi \imp \exists \bar{x} \ld \psi$ for all $\varphi \toa \psi$,
+   where $\bar{x} = \FV{\psi} \setminus \FV{\varphi}$.
+\item (splitting edges) $\vdash \varphi \dimp \psi_1 \lor \dots \lor \psi_n$
+ for all $\varphi_,\psi_1,\dots,\psi_n$ such that
+ $\psi_1,\dots,\psi_n$ are all the $\Es$-successors of $\varphi$ in $G$.
+\end{enumerate}
+\end{definition}
+
+In the current implementation of the \K summarizer, every 
+pattern $\varphi$ 
+has the form $t \land p$, called a constrained term,
+where $t$ is a term
+and $p$ is a predicate pattern.
+
+We call such KCFGs \emph{regular}. 
+\end{frame}
+
+\begin{frame}
+\begin{definition}
+A regular KCFG is one that satisfies the following conditions:
+\begin{enumerate}
+\item It is sound.
+\item All patterns are constrained terms. 
+\item For all splitting edges
+      $t_1 \land p_1 \tos t_2 \land p_2$ we have
+      $t_1 \equiv t_2$ and $\vdash p_2 \imp p_1$.
+\end{enumerate}
+\end{definition}
+A key property about a regular KCFG is that it is a complete summary
+of all possible concrete executions.
+\end{frame}
+
+\begin{frame}
+
+\begin{definition}
+Given a KCFG, 
+a flow $\pi$ is a sequence of the vertex patterns
+following the three types of edges.
+A flow instance $(\pi, \tau)$
+is a flow $\pi$ associated with a substitution $\tau$
+with $\dom{\tau} = \FV{\pi}$.
+\end{definition}
+\begin{theorem}[Tentative for now]
+For any concrete execution of the original transition system,
+there exists a corresponding flow instance
+$(\pi,\tau)$ in the KCFG. 
+\end{theorem}
+\end{frame}
+
+\section{Matching and Unification}
+
+\begin{frame}
+
+\frametitle{Substitution Patterns}
+
+\begin{definition}
+Given a substitution
+\[\tau \equiv [\varphi_1 / x_1 , \dots , \varphi_n / x_n] \]
+we define a corresponding \emph{substitution pattern}
+\[\varphitau \equiv (x_1 = \varphi_1) \land \dots \land (x_n = \varphi_n) \]
+\end{definition}
+
+\begin{lemma}
+$\vdash \varphitau \imp (\psi = \psi\tau)$.
+\end{lemma}
+\begin{proof}
+This (derived) proof rule is called \prule{Equality Elimination}. 
+\end{proof}
+\end{frame}
+
+\begin{frame}
+
+\frametitle{Matching}
+
+\begin{definition}
+\label{def:matching}
+Let $\varphi$ and $\psi$ be two patterns. 
+We say that $\varphi$ \emph{matches} $\psi$
+if
+\[\vdash \varphi \imp \exists \FV{\psi} \ld \psi \]
+We say that $\{\sigma_1,\dots,\sigma_n\}$ is a \emph{complete solution}
+to the matching problem
+\[\varphi_1 \matchQ \psi_1, \dots, \varphi_m \matchQ \psi_m\] if
+\[\vdash \left(\bigwedge_{i=1}^m \varphi_i \subseteq \psi_i \right)
+  \dimp \varphi^{\tau_1} \lor \dots \lor \varphi^{\tau_n}
+\]
+\end{definition}
+
+\end{frame}
+
+\begin{frame}
+
+\frametitle{Matching}
+\begin{lemma}
+For terms $t$ and $s$,
+the matching logic definition of matching
+coincides with the classical term matching.
+\end{lemma}
+
+\begin{lemma}
+$\varphi$ matches $\psi$ if and only if
+\[\vdash \left(\exists \FV{\varphi} \ld \varphi\right)
+  \subseteq \left(\exists \FV{\psi} \ld \psi\right)
+\]
+\end{lemma}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Unification}
+
+\begin{definition}
+\label{def:unification}
+Let $\varphi$ and $\psi$ be two patterns. We say that $\varphi$ \emph{unifies}
+with $\psi$ if
+\[\vdash \ceil{\left(\exists \FV{\varphi} \ld \varphi\right)
+  \land \left(\exists \FV{\psi} \ld \psi\right)}\]
+We say that $\{\sigma_1,\dots,\sigma_n\}$ is a \emph{complete solution}
+to the unification problem
+\[\varphi_1 \unifyQ \psi_1, \dots, \varphi_m \unifyQ \psi_m\]
+if
+\[\vdash \left(\bigwedge_{i=1}^m \ceil{\varphi_i \land \psi_i}\right)
+  \dimp \varphi^{\tau_1} \lor \dots \lor \varphi^{\tau_n}
+\]
+\end{definition}
+\end{frame}
+
+\begin{frame}
+\frametitle{Unification}
+
+\begin{lemma}
+For terms $t$ and $s$,
+the matching logic definition of
+unification coincides with classical term unification.
+\end{lemma}
+
+Both definitions of matching and unification
+in matching logic
+work with underlying theories, 
+in which case we obtain the classical
+matching/unification modulo theories.
+\end{frame}
+
+
+
+
+\end{document}

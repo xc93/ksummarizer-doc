@@ -1,0 +1,159 @@
+\documentclass{article}
+
+\input{prelim}
+
+\title{The \K Summarizer}
+\author{Runtime Verification, Inc.\\(written by Xiaohong Chen)}
+
+\begin{document}
+
+\maketitle
+
+The purpose of this document is to give a formal specification of
+the \K summarizer (\url{https://github.com/runtimeverification/erc20-verification/tree/master/ksummarize}).
+We will investigate how the \K summarizer can be used to do semantics-based compilation (SBC) and formal verification. 
+
+\section{Preliminaries}
+
+Throughout this document, we assume that there is an 
+underlying matching logic theory $\Gamma^L$ that defines the formal semantics
+of a given programming language $L$. 
+The provability symbol $\vdash$ in this document should always be understood as
+\[\Gamma^L \vdash \varphi\]
+i.e., $\varphi$ is provable with the formal semantics of $L$. 
+
+The following standard notations will be used:
+\begin{itemize}\renewcommand\labelitemi{--}
+\item $\varphi$, $\psi$: an arbitrary pattern.
+\item $t$: a term pattern, built from element variables and functional symbols.
+\item $p$: a predicate pattern.
+\item $t \land p$: a constraint term. 
+\item $\tau \equiv [\varphi_1 / x_1 , \dots , \varphi_n / x_n]$: a substitution.
+\item $\varphi\tau$ or $\varphi[\varphi_1 / x_1 , \dots , \varphi_n / x_n]$:
+       applying the substitution to $\varphi$.
+\item $\ceil{\varphi}$: the definedness pattern of $\varphi$.
+\item $\onext \varphi$: ``one-path next'' of $\varphi$.
+\item $\anext \varphi$: ``all-path next'' of $\varphi$, defined as
+ $\anext \varphi \equiv \lnot \onext \lnot \varphi$.
+\item $\itSTOP$: stopped/terminal states; abbreviation for $\anext \bot$.
+\item $\itNONSTOP$: non-stopped states; abbreviation for $\onext \top$. 
+\item $\sanext \varphi$: ``strongly all-path next'' of $\varphi$,
+defined as $\sanext \varphi \equiv \anext \varphi \land \itNONSTOP$. 
+\item $\varphi \ToExOne \varphi'$: ``one-step one-path execution''; abbreviation for $\varphi \imp \onext \varphi'$.
+\item $\varphi \ToAlOne \varphi'$: ``one-step all-path execution'';
+abbreviation for $\varphi \imp \sanext \varphi'$.
+\item $\varphi \ToAl \varphi'$: ``all-path execution'';
+abbreviation for $\varphi \imp \mu X \ld \varphi \lor \anext X$.
+\item more to be added \ldots
+\end{itemize}
+
+\section{Matching and Unification}
+
+In this section we formalize matching and unification as proving matching logic theorems.
+Some definitions and results are from Arusoaie and Lucanu's paper \url{https://arxiv.org/pdf/1811.02835.pdf}. 
+
+\subsection{Substitution Patterns}
+
+\begin{definition}
+Given a substitution
+\[\tau \equiv [\varphi_1 / x_1 , \dots , \varphi_n / x_n] \]
+we define a corresponding \emph{substitution pattern}
+\[\varphitau \equiv (x_1 = \varphi_1) \land \dots \land (x_n = \varphi_n) \]
+\end{definition}
+
+\begin{proposition}
+$\vdash \varphitau \imp (\psi = \psi\tau)$.
+\end{proposition}
+\begin{proof}
+This (derived) proof rule is called \prule{Equality Elimination}. 
+\end{proof}
+
+\subsection{Matching}
+
+\begin{definition}
+\label{def:matching}
+Let $\varphi$ and $\psi$ be two patterns. 
+We say that $\varphi$ \emph{matches} $\psi$
+if
+\[\vdash \varphi \imp \exists \FV{\psi} \ld \psi \]
+We say that $\{\sigma_1,\dots,\sigma_n\}$ is a \emph{complete solution}
+to the matching problem
+\[\varphi_1 \matchQ \psi_1, \dots, \varphi_m \matchQ \psi_m\] if
+\[\vdash \left(\bigwedge_{i=1}^m \varphi_i \subseteq \psi_i \right)
+  \dimp \varphi^{\tau_1} \lor \dots \lor \varphi^{\tau_n}
+\]
+\end{definition}
+
+\begin{proposition}
+For terms $t$ and $s$,
+\Cref{def:matching} coincides with the classical definition of term matching.
+\end{proposition}
+
+\begin{proposition}
+$\varphi$ matches $\psi$ if and only if
+\[\vdash \left(\exists \FV{\varphi} \ld \varphi\right)
+  \subseteq \left(\exists \FV{\psi} \ld \psi\right)
+\]
+\end{proposition}
+\begin{proof}
+By \Cref{def:matching}.
+\end{proof}
+
+\subsection{Unification}
+
+\begin{definition}
+\label{def:unification}
+Let $\varphi$ and $\psi$ be two patterns. We say that $\varphi$ \emph{unifies}
+with $\psi$ if
+\[\vdash \ceil{\left(\exists \FV{\varphi} \ld \varphi\right)
+  \land \left(\exists \FV{\psi} \ld \psi\right)}\]
+We say that $\{\sigma_1,\dots,\sigma_n\}$ is a \emph{complete solution}
+to the unification problem
+\[\varphi_1 \unifyQ \psi_1, \dots, \varphi_m \unifyQ \psi_m\]
+if
+\[\vdash \left(\bigwedge_{i=1}^m \ceil{\varphi_i \land \psi_i}\right)
+  \dimp \varphi^{\tau_1} \lor \dots \lor \varphi^{\tau_n}
+\]
+\end{definition}
+
+\begin{proposition}
+For terms $t$ and $s$,
+\Cref{def:unification} coincides with the classical definition of term unification.
+\end{proposition}
+
+\subsection{Modulo Theories}
+
+\Cref{def:matching,def:unification} work with underlying theories, 
+in which case we obtain matching/unification modulo theories.
+
+\section{\K Summaries}
+
+\begin{definition}
+A \K control-flow graph (abbreviated KCFG) $G = (V, \Er, \Ea, \Es)$ is a directed graph
+with three types of edges where
+\begin{itemize}
+\item the vertex set $V$ is a set of patterns;
+\item $\Er \subseteq V \times V$ is called the \emph{rewriting relation};
+\item $\Ea \subseteq V \times V$ is called the \emph{abstracting relation};
+\item $\Es \subseteq V \times V$ is called the \emph{splitting relation}. 
+\end{itemize}
+We write $\varphi \tor \psi$ 
+($\varphi \toa \psi$ and $\varphi \tos \psi$, resp.)
+for the three types of edges.
+\end{definition}
+
+\begin{definition}
+A KCFG $G = (V, E, F)$ is \emph{sound} w.r.t. $\Gamma^L$ if
+\begin{enumerate}
+\item $\vdash \varphi \ToAl \psi$ for all $\varphi \tor \psi$;
+\item $\vdash \varphi \imp \psi$ for all $\varphi \toa \psi$;
+\item $\vdash \varphi \dimp \psi_1 \lor \dots \lor \psi_n$
+ for all $\varphi_,\psi_1,\dots,\psi_n$ such that
+ $\psi_1,\dots,\psi_n$ are all the $\Es$-successors of $\varphi$ in $G$.
+\end{enumerate}
+\end{definition}
+
+Intuitively, $\varphi \ToAl \psi$ denotes a compilation of
+many all-path execution steps. 
+
+\end{document}
