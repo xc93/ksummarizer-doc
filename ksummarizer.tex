@@ -3,31 +3,38 @@
 \input{prelim}
 
 \title{The \K Summarizer}
-\author{Runtime Verification, Inc.\\(written by Xiaohong Chen)}
+\author{Runtime Verification, Inc.}
 
 \begin{document}
 
 \maketitle
 
-The purpose of this document is to give a formal specification of
-the \K summarizer (\url{https://github.com/runtimeverification/erc20-verification/tree/master/ksummarize}).
-We will investigate how the \K summarizer can be used to do semantics-based compilation (SBC) and formal verification. 
+The purpose of this document is to provide a formal specification of
+the \K summarizer (\url{https://github.com/runtimeverification/erc20-verification/tree/master/ksummarize})
+that is mathematically sound
+and is faithful to the implementation.
+We will also study the case studies 
+of the summarizer for semantics-based compilation (SBC),
+model checking, and formal verification. 
+
 
 \section{Preliminaries}
 
 Throughout this document, we assume that there is an 
 underlying matching logic theory $\Gamma^L$ that defines the formal semantics
-of a given programming language $L$. 
-The provability symbol $\vdash$ in this document should always be understood as
-\[\Gamma^L \vdash \varphi\]
-i.e., $\varphi$ is provable with the formal semantics of $L$. 
+of some programming language $L$. 
+In \Cref{fig:notations} we list the standard notations that will be used
+in this document.
 
-The following standard notations will be used:
+\begin{figure}
+\fbox{\parbox{\textwidth}{
+\emph{The following standard notations will be used:}
 \begin{itemize}\renewcommand\labelitemi{--}
 \item $\varphi$, $\psi$: an arbitrary pattern.
 \item $t$: a term pattern, built from element variables and functional symbols.
 \item $p$: a predicate pattern.
 \item $t \land p$: a constraint term. 
+\item $\Gamma^L \vdash \varphi$: $\varphi$ is provable from $\Gamma^L$.
 \item $\tau \equiv [\varphi_1 / x_1 , \dots , \varphi_n / x_n]$: a substitution.
 \item $\varphi\tau$ or $\varphi[\varphi_1 / x_1 , \dots , \varphi_n / x_n]$:
        applying the substitution to $\varphi$.
@@ -46,6 +53,14 @@ abbreviation for $\varphi \imp \sanext \varphi'$.
 abbreviation for $\varphi \imp \mu X \ld \varphi \lor \anext X$.
 \item more to be added \ldots
 \end{itemize}
+}}
+\caption{List of Notations}
+\label{fig:notations}
+\end{figure}
+
+
+
+
 
 \section{Matching and Unification}
 
@@ -62,7 +77,7 @@ we define a corresponding \emph{substitution pattern}
 \end{definition}
 
 \begin{proposition}
-$\vdash \varphitau \imp (\psi = \psi\tau)$.
+$\Gamma^L \vdash \varphitau \imp (\psi = \psi\tau)$.
 \end{proposition}
 \begin{proof}
 This (derived) proof rule is called \prule{Equality Elimination}. 
@@ -72,10 +87,69 @@ This (derived) proof rule is called \prule{Equality Elimination}.
 
 \begin{definition}
 \label{def:matching}
-Let $\varphi$ and $\psi$ be two patterns. 
+Let $\varphi$ and $\psi$ be two patterns without free set variables.
+We call $\varphi$ the \emph{left pattern}
+and $\psi$ the \emph{right pattern}.\footnote{Usually $\varphi$ is called the ``term'' and $\psi$ the ``pattern'', but since matching logic formulas are already called patterns, we use left/right patterns to avoid confusion.} 
 We say that $\varphi$ \emph{matches} $\psi$
 if
-\[\vdash \varphi \imp \exists \FV{\psi} \ld \psi \]
+\[\Gamma^L \vdash \varphi \imp \exists \FV{\psi} \ld \psi \]
+\end{definition}
+
+\begin{example}
+Suppose that $f$ is a function symbol. 
+Then $f(0,0)$ matches $f(x,y)$, because
+\[\Gamma^L \vdash f(0,1) \imp \exists x \exists y \ld f(x,y)\]
+\end{example}
+
+\begin{example}
+Suppose that $f$ is a function symbol.
+Then $f(0,z)$ matches $f(x,y)$ because
+\[\Gamma^L \vdash f(0,z) \imp \exists x \exists y \ld f(x,y)\]
+Note that the above is equivalent to
+\[\Gamma^L \vdash \forall z \ld \left(f(0,z) \imp \exists x \exists y \ld f(x,y)\right)\]
+In other words, all variables in the left pattern are universally quantified.
+\end{example}
+
+\begin{example}
+Suppose that $f$ is a function symbol.
+Then $f(0, x)$ matches $f(x,y)$ because
+\[\Gamma^L \vdash f(0,x) \imp \exists x \exists y \ld f(x,y)\]
+Note that $x$ in the right pattern is quantified/bound.
+Generally speaking, all the variables in the right pattern are quantified
+and can be freely renamed. 
+It allows us to assume that $\varphi$ and $\psi$ have distinct free variables
+without loss of generality. 
+\end{example}
+
+Semantically speaking, 
+$\varphi$ matches $\psi$ implies that
+\[\ev{\varphi}{\rho,M} \subseteq \ev{\exists \FV{\psi} \ld \psi}{\rho,M}
+= \bigcup_{a_1,\dots,a_n \in M} \ev{\psi}{\rho[a_1/x_1,\dots,a_n/x_n],M}
+\]
+where $\FV{\psi} = \{x_1,\dots,x_n\}$.
+If $\varphi$ is a unit pattern (i.e., a functional pattern),
+then $\ev{\varphi}{\rho,M}$ is a unit set and there exist
+$a_1,\dots,a_n \in M$ such that
+\[\ev{\varphi}{\rho,M} \subseteq \ev{\psi}{\rho[a_1/x_1,\dots,a_n/x_n],M}
+\]
+Pattern matching gives us closed-form solutions of
+these witness values $a_1,\dots,a_n$. 
+Formally,
+
+\begin{definition}
+Let $\varphi$ and $\psi$ be two patterns
+and $\sigma$ be a substitution pattern. 
+We say that $\sigma$ is a \emph{solution} to the matching problem
+\[\varphi \matchQ \psi\]
+if
+\[\Gamma^L \vdash \varphi \imp \psi\tau\]
+\end{definition}
+
+there exists a particular value $v_i$ for each $x_i \in \FV{\psi}$ such that
+$\Gamma^L \vdash \varphi \imp \psi[v_1/x_1, v_2/x_2,\dots]$,
+where $v_i$ depends on 
+
+\begin{definition}
 We say that $\{\sigma_1,\dots,\sigma_n\}$ is a \emph{complete solution}
 to the matching problem
 \[\varphi_1 \matchQ \psi_1, \dots, \varphi_m \matchQ \psi_m\] if
@@ -126,13 +200,33 @@ For terms $t$ and $s$,
 \Cref{def:matching,def:unification} work with underlying theories, 
 in which case we obtain matching/unification modulo theories.
 
-\section{\K Summaries}
+\section{Transition Systems and Rewriting Relations}
+
+TBA
+
+\section{\K Summarizer Assuming Determinism}
+
+Throughout this section, let us assume that
+the underlying formal semantics are deterministic.
+Formally, it means that
+$\Gamma^L \vdash \onext \varphi \imp \anext \varphi$
+for all $\varphi$ of sort $\Cfg$, which is the sort of computation configurations. 
+We introduce the following notations:
+\begin{itemize}\renewcommand\labelitemi{--}
+\item $t_1 \To_1 t_2$: one-step rewriting
+\item $t_1 \To_n t_2$: $n$-step rewriting
+\item $t_1 \To_* t_2$: finite-step rewriting
+\item $t_1 \To_+ t_2$: finite-step at-least-one-step rewriting
+\end{itemize}
+
 
 \begin{definition}
-A \K control-flow graph (abbreviated KCFG) $G = (V, \Er, \Ea, \Es)$ is a directed graph
-with three types of edges where
+\label{def:KCFG}
+A \K control-flow graph (abbreviated KCFG) 
+$G = (V, \Er, \Ea, \Es)$ is a directed graph
+with three types of edges, where
 \begin{itemize}
-\item the vertex set $V$ is a set of patterns;
+\item the vertex set $V$ is a set of patterns of sort $\Cfg$;
 \item $\Er \subseteq V \times V$ is called the \emph{rewriting relation};
 \item $\Ea \subseteq V \times V$ is called the \emph{abstracting relation};
 \item $\Es \subseteq V \times V$ is called the \emph{splitting relation}. 
@@ -142,18 +236,81 @@ We write $\varphi \tor \psi$
 for the three types of edges.
 \end{definition}
 
-\begin{definition}
-A KCFG $G = (V, E, F)$ is \emph{sound} w.r.t. $\Gamma^L$ if
-\begin{enumerate}
-\item $\vdash \varphi \ToAl \psi$ for all $\varphi \tor \psi$;
-\item $\vdash \varphi \imp \psi$ for all $\varphi \toa \psi$;
-\item $\vdash \varphi \dimp \psi_1 \lor \dots \lor \psi_n$
- for all $\varphi_,\psi_1,\dots,\psi_n$ such that
- $\psi_1,\dots,\psi_n$ are all the $\Es$-successors of $\varphi$ in $G$.
-\end{enumerate}
-\end{definition}
+\Cref{def:KCFG} defines KCFGs in its most general form
+as directed graphs with patterns as its nodes and
+three types of edges.
+The actual KCFGs that are generated by the \K summarizer
+are of a more specific form, which we refer to as \emph{regular} KCFGs. 
+A regular KCFG has \emph{constrained terms} 
+of the form $t \land p$ as its nodes,
+where $t$ is a term and $p$ is a predicate. 
+The rewriting relation $\Er$ corresponds to the executions of basic
+blocks.
+The abstracting relation $\Ea$ corresponds to pattern matching.
+The splitting relation $\Es$ corresponds to adding
+additional path conditions.
+In the following we will formalize regular KCFGs that are constructed by the \K summarizer.
 
-Intuitively, $\varphi \ToAl \psi$ denotes a compilation of
-many all-path execution steps. 
+\subsection{Input to the \K Summarizer}
+\label{sec:k-summarizer-input}
+
+\paragraph{Formal Semantics.}
+
+Let $S = \{ \lhs_i \To \rhs_i \mid i = 1, \dots, \abs{S} \} $ be the set of semantic rules. 
+Further, let $\Scut \cup \Sncut$ be a division of $S$ where
+rules in $\Scut$ are called \emph{cut rules}.
+Rules in $\Sncut$ are called \emph{non-cut rules}. 
+The left-hand sides of the cut-rules are called \emph{cut patterns}.
+The set of all cut patterns is defined as
+\[\Pcut = \{\lhs_i \mid \lhs_i \To \rhs_i \in \Scut\}\]
+
+\paragraph{Initial Pattern.}
+Let $\ct_0 \equiv t_0 \land p_0$ be the constrained term that represents the initial configuration
+that is given to the \K summarizer for which a KCFG is constructed. 
+
+\paragraph{Target Patterns.}
+
+Let $\Pt$ be a set of patterns called the \emph{target patterns}. 
+When a target pattern is reached the \K summarizer stops the construction of the KCFG. 
+
+\paragraph{Abstracting Function.}
+
+Let $\absfun$ be the abstracting function
+from constrained terms to constrained terms, with the property that
+for any $\ct$ there exists  a substitution $\sigma$ such that
+\[\Gamma^L \vdash \ct = \absfun(\ct)\sigma\]
+
+\subsection{Regular KCFGs}
+
+\begin{definition}
+Given the input in \Cref{sec:k-summarizer-input}
+A \emph{regular}
+KCFG w.r.t. $\ct_0$ 
+\[G = (V, \ct_0, \Er, \Ea, \Es)\] 
+satisfies the following conditions.
+\begin{enumerate}
+\item $(V, \Er, \Ea, \Es)$ is a KCFG.
+\item $V$ is a set of constrained terms and $\ct_0 \in V$.
+\item For every $\ct \in V$, there can be only one type of outgoing edges
+   (rewriting, abstracting, or splitting). 
+\item For every $\ct_1 \tor \ct_2$, $\Gamma^L \vdash \ct_1 \To_+ \ct_2$.
+   Also, $\ct_2$ is the only successor node of $\ct_1$ in $G$.
+\item For every $\ct_1 \toa \ct_2$, there exists a substitution $\sigma$ such that $\Gamma^L \vdash \ct_1 = \ct_2\sigma$.
+   We shall write $\ct_1 \toa^\sigma \ct_2$ to indicate the witness substitution $\sigma$. 
+   Also, $\ct_2$ is the only successor node of $\ct_1$ in $G$. 
+\item For every $\ct_1 \tos \ct_2$, there exists
+$p$ such that $\Gamma^L \vdash \ct_2 = \ct_1 \land p$. 
+      We shall write $\ct_1 \tos^p \ct_2$ to indicate the witness predicate $p$.
+\item Let $\ct \in V$ be a node that has outgoing spitting edges
+and $\ct_1,\dots,\ct_n$ are all of its ($\Es$-)successors:
+\[\ct\tos^{p_1} \ct_1 , \dots , \ct \tos^{p_n} \ct_n\]
+ Then $\Gamma^L \vdash p_1 \lor \dots \lor p_n$. 
+\item $(G, \Er \cup \Es)$ forms a tree. 
+\item There are no consecutive edges of the same type because they can be collapsed (using the \verb|remove_intermediate_covers| routine). 
+\end{enumerate}
+We call the above regular KCFG \emph{complete} if
+all the target nodes (i.e., nodes that do not have any outgoing edges) 
+are target patterns given in $\Pt$. 
+\end{definition}
 
 \end{document}
